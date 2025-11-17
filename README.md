@@ -1,61 +1,96 @@
 # 图数据结构实现（邻接矩阵与邻接表）
-
-本项目用 C++ 实现了图的两种经典存储结构（邻接矩阵、邻接表）及核心操作，包括图的创建、边的增删、度的计算、遍历（DFS/BFS）、存储结构转换等，适合数据结构课程学习参考，配套详细解析笔记方便理解。
+本项目用 C++ 实现了图的两种经典存储结构（邻接矩阵、邻接表）及全套核心操作，支持**文件输入驱动自动化测试**，涵盖图的创建、边的增删、度的计算、遍历（DFS/BFS）、存储结构转换等完整功能，适合数据结构课程学习参考，配套详细解析笔记方便理解。
 
 ## 功能说明
-
 实现了图的完整生命周期操作，支持有向图（DG）、有向网（DN）、无向图（UDG）、无向网（UDN）四种类型，核心功能包括：
+### 1. 存储结构
+- 邻接矩阵（`MGraph`）：适合稠密图，通过二维数组存储边关系，查询效率高
+- 邻接表（`ALGraph`）：适合稀疏图，通过「顶点数组 + 弧链表」存储，节省空间
 
-1. 存储结构：
-   - 邻接矩阵（`MGraph`）：适合稠密图，通过二维数组存储边关系
-   - 邻接表（`ALGraph`）：适合稀疏图，通过「顶点数组 + 弧链表」存储
-2. 基础操作：
-   - 创建图（`CreateMGraph`/`CreateALGraph`）
-   - 插入 / 删除边（`InsertEdge_*`/`DeleteEdge_*`）
-   - 计算顶点度（出度 `OutDegree_*`、入度 `InDegree_*`）
-3. 高级功能：
-   - 遍历算法：深度优先搜索（DFS）、广度优先搜索（BFS）
-   - 结构转换：邻接矩阵 ↔ 邻接表（`MGraphToALGraph`/`ALGraphToMGraph`）
-   - 逆邻接表生成（`ALGraphToInverse`）及基于逆邻接表的高效入度计算（`InDegree_InvALGraph`）
-4. 内存管理：
-   - 邻接表专用销毁函数（`DestroyALGraph`），释放动态分配的弧节点，避免内存泄漏
+### 2. 基础操作
+- 创建图（`CreateMGraph`/`CreateALGraph`）：
+  - 邻接矩阵：无交互提示，直接读取输入（适配文件输入）
+  - 邻接表：带交互提示，兼容文件输入和手动输入
+- 插入/删除边（`InsertEdge_*`/`DeleteEdge_*`）：支持无向图/有向图的边操作，自动处理双向/单向逻辑
+- 度数计算：
+  - 出度：`OutDegreeMGraph`（矩阵）、`OutDegree_ALGraph`（邻接表）
+  - 入度：`InDegreeMGraph`（矩阵）、`InDegree_ALGraph`（邻接表，低效）、`InDegree_InvALGraph`（逆邻接表，高效）
+
+### 3. 高级功能
+- 遍历算法：深度优先搜索（DFS）、广度优先搜索（BFS），两种存储结构均实现
+- 结构转换：
+  - 邻接矩阵 ↔ 邻接表（`MGraphToALGraph`/`ALGraphToMGraph`）
+  - 邻接表 → 逆邻接表（`ALGraphToInverse`，仅适用于有向图）
+- 可视化支持：`PrintMGraph`（打印邻接矩阵）、`PrintALGraph`（打印邻接表），直观查看数据结构
+
+### 4. 工程化特性
+- 文件输入：通过 `input.txt` 批量输入测试数据，无需手动交互
+- 内存管理：`DestroyALGraph` 释放邻接表动态节点，避免内存泄漏
+- 容错处理：顶点不存在时跳过无效边，输出提示信息
 
 ## 项目结构
-
 ```plaintext
 .
-├── test.cpp                          // 核心代码（包含所有结构体定义和函数实现）
-├── README.md                         // 项目说明文档（功能介绍、结构说明、注意事项）
-├── requirements.txt                  // 编译运行环境要求（C++编译器版本、依赖库说明）
-└── 图数据结构实现（邻接矩阵与邻接表）.md  // 详细实现解析笔记（代码模块拆分、函数逻辑逐行说明）
+├── test.cpp                          // 核心代码（结构体定义、函数实现、完整测试main函数）
+├── input.txt                         // 测试输入文件（图类型、顶点/边信息、操作指令）
+├── README.md                         // 项目说明文档（功能、使用方法、注意事项）
+├── requirements.txt                  // 编译运行环境要求
+└── 图数据结构实现（邻接矩阵与邻接表）.md  // 详细解析笔记（代码模块、逻辑逐行说明）
 ```
 
-核心结构体与函数分类：
+### 核心结构体与函数分类
 
 | 模块     | 关键结构体 / 函数                                            |
 | -------- | ------------------------------------------------------------ |
-| 邻接矩阵 | `MGraph`（图结构）、`CreateMGraph`（创建）、`DFS_MGraph`（DFS 遍历） |
-| 邻接表   | `ALGraph`（图结构）、`CreateALGraph`（创建）、`BFS_ALGraph`（BFS 遍历） |
-| 度计算   | `OutDegreeMGraph`（邻接矩阵出度）、`InDegree_InvALGraph`（逆邻接表入度，高效） |
+| 基础定义 | `GraphKind`（图类型枚举）、`MAX_VERTEX_NUM`（顶点数上限）、`INFINITY`（无连接标记） |
+| 邻接矩阵 | `MGraph`（结构）、`CreateMGraph`（创建）、`DFS_MGraph`/`BFS_MGraph`（遍历）、`PrintMGraph`（打印） |
+| 邻接表   | `ALGraph`（结构）、`CreateALGraph`（创建）、`DFS_ALGraph`/`BFS_ALGraph`（遍历）、`PrintALGraph`（打印） |
+| 度数计算 | `OutDegree_*`（出度）、`InDegree_InvALGraph`（逆邻接表高效入度） |
 | 结构转换 | `MGraphToALGraph`（矩阵转表）、`ALGraphToInverse`（生成逆邻接表） |
+| 文件输入 | `main` 函数通过 `cin.rdbuf(fin.rdbuf())` 重定向输入，读取 `input.txt` |
 | 内存管理 | `DestroyALGraph`（释放邻接表动态节点）                       |
 
 ## 环境要求（见 requirements.txt）
 
-- C++ 编译器（支持 C++11 及以上标准）：
-  - g++ 5.4.0 及以上
-  - clang++ 3.8.0 及以上
-  - MSVC 2015 及以上
-- 标准 C++ 库（STL）：包含`<iostream>`、`<queue>`、`<cstring>`等头文件（通常随编译器自带）
+- C++ 编译器（支持 C++11 及以上标准）：g++ 5.4.0+、clang++ 3.8.0+、MSVC 2015+
+- 标准 C++ 库（STL）：包含 `<iostream>`、`<queue>`、`<cstring>`、`<fstream>`（文件操作依赖）
+
+## 使用方法
+
+### 准备输入文件
+
+`input.txt` 需与编译后的可执行文件放在同一目录，格式严格遵循以下规则：
+
+```txt
+UDG                     
+4 3                     
+A B C D                 
+A B                     
+A C                     
+B D                     
+C D                     
+A C                    
+
+DG                      
+3 3                     
+X Y Z                  
+X Y                    
+Y Z                    
+Z X                    
+X Z                    
+Y Z                    
+```
 
 ## 注意事项
 
-1. 顶点数量限制：当前通过宏 `MAX_VERTEX_NUM` 限制最大顶点数为 20，可根据需求修改。
-2. 图类型区分：
-   - 无向图（UDG/UDN）会自动添加双向边，有向图（DG/DN）仅添加单向边。
-   - 逆邻接表仅对有向图有效（无向图的逆邻接表与原表一致）。
-3. 内存管理：使用邻接表后必须调用 `DestroyALGraph` 释放动态分配的 `ArcNode` 节点，避免内存泄漏。
-4. 输入容错：顶点不存在时会提示跳过无效边，但未处理顶点重复、自环等特殊情况，可根据需求扩展。
-5. 学习建议：可结合 `图数据结构实现（邻接矩阵与邻接表）.md` 查看详细解析，从模块拆分角度理解代码逻辑。
+1. 顶点限制：最大顶点数由 `MAX_VERTEX_NUM` 定义（默认 20），可直接修改宏定义扩展。
+2. 图类型适配：
+   - 无向图（UDG/UDN）：插入 / 创建边时自动添加双向关系
+   - 有向图（DG/DN）：仅保留单向关系，逆邻接表功能仅对有向图有效
+3. 输入规范：
+   - `input.txt` 不可包含注释，每行数据按顺序排列，否则会导致读取失败
+   - 顶点需为单个字符（如 A、X），不可为多字符（如 AB、Node1）
+4. 内存管理：邻接表使用动态分配的 `ArcNode` 节点，必须调用 `DestroyALGraph` 释放，代码中已在程序结束时自动调用。
 
 如有问题或优化建议，欢迎提交 Issues 或 Pull Requests！
+

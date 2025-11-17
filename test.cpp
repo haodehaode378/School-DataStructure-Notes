@@ -1,6 +1,7 @@
 #include <iostream>
 #include <queue>
 #include <cstring>
+#include <fstream>
 using namespace std;
 
 #define MAX_VERTEX_NUM 20   //最大顶点数
@@ -11,9 +12,9 @@ using namespace std;
 typedef enum { DG, DN, UDG, UDN } GraphKind;
 
 //邻接矩阵的“边”单元
-typedef struct ArcCell{
-	int adj;// 无权图用0/1表示是否连接，有权图存储权值
-	int * info;//弧/边的附加信息的指针(int类型可以改)
+typedef struct ArcCell {
+    int adj;// 无权图用0/1表示是否连接，有权图存储权值
+    int* info;//弧/边的附加信息的指针(int类型可以改)
 }ArcCell, AdjMatrix[MAX_VERTEX_NUM][MAX_VERTEX_NUM];
 
 //邻接矩阵表示的图
@@ -28,18 +29,18 @@ typedef struct MGraph {
 //邻接表的“弧结点”
 typedef struct ArcNode {
     int adjvex;                 //邻接顶点的位置下标
-    struct ArcNode * nextarc;   //指向下一条弧的指针
-    int * info;                 //弧的附加信息
+    struct ArcNode* nextarc;   //指向下一条弧的指针
+    int* info;                 //弧的附加信息
 } ArcNode;
 
 //邻接表的“顶点结点”
 typedef struct VNode {
     char data;                  //顶点信息
-    ArcNode * firstarc;         //指向第一条依附该顶点的弧的指针
+    ArcNode* firstarc;         //指向第一条依附该顶点的弧的指针
 } VNode, AdjList[MAX_VERTEX_NUM];
 
 //邻接表表示的图
-typedef struct ALGraph{
+typedef struct ALGraph {
     AdjList vertices;           //邻接表数组
     int vexnum;                 //当前顶点数
     int arcnum;                 //当前弧/边数
@@ -56,11 +57,7 @@ int LocateVex(MGraph& G, char v) {
 
 //创建邻接矩阵图(以无向图为例，可删去一行变为有向图)
 void CreateMGraph(MGraph& G, GraphKind kind) {
-    cout << "输入顶点数和弧/边数：";
     cin >> G.vexnum >> G.arcnum;
-
-    cout << "输入" << G.vexnum << "个顶点：" << endl;
-
     for (int i = 0; i < G.vexnum; i++) {
         cin >> G.vexs[i];
     }
@@ -72,9 +69,6 @@ void CreateMGraph(MGraph& G, GraphKind kind) {
             G.arcs[i][j].info = 0;
         }
     }
-
-    //输入弧/边信息
-    cout << "输入每条弧/边的两个顶点（如A B）：" << endl;
     char v1, v2;
     int i, j;
     for (int k = 0; k < G.arcnum; k++) {
@@ -206,17 +200,13 @@ int LocateVex_AL(ALGraph& AL, char v) {
 //创建邻接表（不调用插入边函数，内部直接实现边插入）
 void CreateALGraph(ALGraph& AL, GraphKind kind) {
     AL.kind = kind;
-    cout << "输入邻接表的顶点数和边数：";
     cin >> AL.vexnum >> AL.arcnum;
-
-    cout << "输入" << AL.vexnum << "个顶点（如A B C）：";
     for (int i = 0; i < AL.vexnum; i++) {
         cin >> AL.vertices[i].data; //初始化顶点数据
         AL.vertices[i].firstarc = NULL; //初始没有弧
     }
 
     //输入边信息并直接构建邻接表
-    cout << "输入" << AL.arcnum << "条边（如A B）：" << endl;
     char v1, v2;
     int i, j;
     for (int k = 0; k < AL.arcnum; k++) {
@@ -453,7 +443,184 @@ void DestroyALGraph(ALGraph& AL) {
     }
 }
 
+//打印邻接矩阵
+void PrintMGraph(MGraph& G) {
+    //打印顶点表头
+    cout << "  ";
+    for (int i = 0; i < G.vexnum; i++) {
+        cout << G.vexs[i] << " ";
+    }
+    cout << endl;
+
+    //打印矩阵内容
+    for (int i = 0; i < G.vexnum; i++) {
+        cout << G.vexs[i] << " ";
+        for (int j = 0; j < G.vexnum; j++) {
+            if (G.arcs[i][j].adj == INFINITY) {
+                cout << "∞ ";  // 用∞表示无连接
+            }
+            else {
+                cout << G.arcs[i][j].adj << " ";
+            }
+        }
+        cout << endl;
+    }
+}
+
+//打印邻接表
+void PrintALGraph(ALGraph& AL) {
+    for (int i = 0; i < AL.vexnum; i++) {
+        cout << AL.vertices[i].data << " -> ";
+        ArcNode* p = AL.vertices[i].firstarc;
+        while (p) {
+            cout << AL.vertices[p->adjvex].data << " -> ";
+            p = p->nextarc;
+        }
+        cout << "NULL" << endl;
+    }
+}
+
 int main() {
-    //略
+    ifstream fin("input.txt");
+    if (!fin.is_open()) {
+        cerr << "无法打开输入文件！" << endl;
+        return 1;
+    }
+
+    cin.rdbuf(fin.rdbuf());
+
+    //------------------- 测试邻接矩阵（无向图UDG） -------------------
+    cout << "===== 测试邻接矩阵（无向图） =====" << endl;
+    GraphKind mg_kind;
+    string kind_str;
+    fin >> kind_str;  // 从文件读取图类型
+    mg_kind = (kind_str == "UDG") ? UDG : DG;  //默认UDG
+
+    MGraph MG;
+    CreateMGraph(MG, mg_kind);  // 修正：去掉多余的fin参数
+    cout << "\n创建后的邻接矩阵：\n";
+    PrintMGraph(MG);
+
+    //插入边
+    char v1, v2;
+    fin >> v1 >> v2;  // 从文件读取顶点
+    cout << "\n插入边 " << v1 << "-" << v2 << " 后：\n";
+    InsertEdge_MGraph(MG, v1, v2);
+    PrintMGraph(MG);
+
+    //删除边
+    fin >> v1 >> v2;  // 从文件读取顶点
+    cout << "\n删除边 " << v1 << "-" << v2 << " 后：\n";
+    DeleteEdge_MGraph(MG, v1, v2);
+    PrintMGraph(MG);
+
+    //DFS和BFS遍历
+    bool visited[MAX_VERTEX_NUM] = { false };
+    cout << "\n邻接矩阵DFS遍历：";
+    for (int i = 0; i < MG.vexnum; i++) {
+        if (!visited[i]) DFS_MGraph(MG, i, visited);
+    }
+
+    memset(visited, 0, sizeof(visited));
+    cout << "\n邻接矩阵BFS遍历：";
+    for (int i = 0; i < MG.vexnum; i++) {
+        if (!visited[i]) BFS_MGraph(MG, i, visited);
+    }
+
+    //出入度
+    cout << "\n\n各顶点度数：\n";
+    for (int i = 0; i < MG.vexnum; i++) {
+        cout << MG.vexs[i] << "：出度=" << OutDegreeMGraph(MG, i)
+            << "，入度=" << InDegreeMGraph(MG, i) << endl;
+    }
+
+    //------------------- 邻接矩阵转邻接表 -------------------
+    cout << "\n===== 邻接矩阵转邻接表 =====" << endl;
+    ALGraph AL_from_MG;
+    MGraphToALGraph(MG, AL_from_MG);
+    cout << "转换后的邻接表：\n";
+    PrintALGraph(AL_from_MG);
+
+    //转换后邻接表的遍历
+    memset(visited, 0, sizeof(visited));
+    cout << "\n转换后邻接表DFS：";
+    for (int i = 0; i < AL_from_MG.vexnum; i++) {
+        if (!visited[i]) DFS_ALGraph(AL_from_MG, i, visited);
+    }
+
+    memset(visited, 0, sizeof(visited));
+    cout << "\n转换后邻接表BFS：";
+    for (int i = 0; i < AL_from_MG.vexnum; i++) {
+        if (!visited[i]) BFS_ALGraph(AL_from_MG, i, visited);
+    }
+
+    //------------------- 测试邻接表（有向图DG） -------------------
+    cout << "\n\n===== 测试邻接表（有向图） =====" << endl;
+    fin >> kind_str;  // 从文件读取图类型
+    GraphKind al_kind = (kind_str == "DG") ? DG : UDG;  //默认DG
+
+    ALGraph AL;
+    CreateALGraph(AL, al_kind);  // 修正：去掉多余的fin参数
+    cout << "\n创建后的邻接表：\n";
+    PrintALGraph(AL);
+
+    //插入边
+    fin >> v1 >> v2;  // 从文件读取顶点
+    cout << "\n插入边 " << v1 << "->" << v2 << " 后：\n";
+    InsertEdge_ALGraph(AL, v1, v2);
+    PrintALGraph(AL);
+
+    //删除边
+    fin >> v1 >> v2;  // 从文件读取顶点
+    cout << "\n删除边 " << v1 << "->" << v2 << " 后：\n";
+    DeleteEdge_ALGraph(AL, v1, v2);
+    PrintALGraph(AL);
+
+    //遍历
+    memset(visited, 0, sizeof(visited));
+    cout << "\n邻接表DFS：";
+    for (int i = 0; i < AL.vexnum; i++) {
+        if (!visited[i]) DFS_ALGraph(AL, i, visited);
+    }
+
+    memset(visited, 0, sizeof(visited));
+    cout << "\n邻接表BFS：";
+    for (int i = 0; i < AL.vexnum; i++) {
+        if (!visited[i]) BFS_ALGraph(AL, i, visited);
+    }
+
+    //出入度
+    cout << "\n\n各顶点度数：\n";
+    for (int i = 0; i < AL.vexnum; i++) {
+        cout << AL.vertices[i].data << "：出度=" << OutDegree_ALGraph(AL, i)
+            << "，入度=" << InDegree_ALGraph(AL, i) << endl;
+    }
+
+    //------------------- 逆邻接表测试 -------------------
+    cout << "\n===== 逆邻接表测试 =====" << endl;
+    ALGraph invAL;
+    ALGraphToInverse(AL, invAL);
+    cout << "逆邻接表：\n";
+    PrintALGraph(invAL);
+
+    cout << "\n逆邻接表计算入度：\n";
+    for (int i = 0; i < invAL.vexnum; i++) {
+        cout << invAL.vertices[i].data << "：入度=" << InDegree_InvALGraph(invAL, i) << endl;
+    }
+
+    //------------------- 邻接表转邻接矩阵 -------------------
+    cout << "\n===== 邻接表转邻接矩阵 =====" << endl;
+    MGraph MG_from_AL;
+    ALGraphToMGraph(AL, MG_from_AL);
+    cout << "转换后的邻接矩阵：\n";
+    PrintMGraph(MG_from_AL);
+
+    //销毁邻接表
+    DestroyALGraph(AL);
+    DestroyALGraph(AL_from_MG);
+    DestroyALGraph(invAL);
+    cout << "\n所有邻接表已销毁，程序结束。" << endl;
+
+    fin.close();
     return 0;
 }

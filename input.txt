@@ -1,0 +1,16 @@
+UDG
+4 3
+A B C D
+A B
+A C
+B D
+C D
+A C
+DG
+3 3
+X Y Z
+X Y
+Y Z
+Z X
+X Z
+Y Z
