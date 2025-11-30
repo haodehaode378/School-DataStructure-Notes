@@ -1,5 +1,6 @@
 #include <iostream>
 #include <queue>
+#include <vector>
 #include <cstring>
 #include <fstream>
 using namespace std;
@@ -443,6 +444,8 @@ void DestroyALGraph(ALGraph& AL) {
     }
 }
 
+
+
 //打印邻接矩阵
 void PrintMGraph(MGraph& G) {
     //打印顶点表头
@@ -480,13 +483,75 @@ void PrintALGraph(ALGraph& AL) {
     }
 }
 
-int main() {
-    ifstream fin("input.txt");
-    if (!fin.is_open()) {
-        cerr << "无法打开输入文件！" << endl;
-        return 1;
+// 拓扑排序（仅支持有向图DG/DN）
+bool TopologicalSort_Kahn(ALGraph& AL) {
+    // 1. 检查图类型：仅支持有向图（DG/DN）
+    if (AL.kind != DG && AL.kind != DN) {
+        cout << "\n拓扑排序仅支持有向图（DG/DN），当前图类型不支持！" << endl;
+        return false;
     }
 
+    int vexnum = AL.vexnum;
+    int* inDegree = new int[vexnum];  // 存储每个顶点的入度
+    queue<int> zeroInQueue;           // 存储入度为0的顶点下标
+    vector<char> topoSeq;             // 存储拓扑排序结果
+
+    // 2. 计算所有顶点的入度（复用逆邻接表，效率更高）
+    ALGraph invAL;                    // 临时逆邻接表
+    ALGraphToInverse(AL, invAL);      // 生成逆邻接表
+    for (int i = 0; i < vexnum; i++) {
+        inDegree[i] = InDegree_InvALGraph(invAL, i);  // 逆邻接表长度=入度
+        if (inDegree[i] == 0) {
+            zeroInQueue.push(i);  // 入度为0的顶点入队
+        }
+    }
+
+    // 3. 执行Kahn算法核心逻辑
+    while (!zeroInQueue.empty()) {
+        int u = zeroInQueue.front();  // 取出入度为0的顶点u
+        zeroInQueue.pop();
+        topoSeq.push_back(AL.vertices[u].data);  // 加入拓扑序列
+
+        // 遍历u的所有邻接顶点v，将v的入度减1（u已被剥离，v的前驱减少1）
+        ArcNode* p = AL.vertices[u].firstarc;
+        while (p != NULL) {
+            int v = p->adjvex;
+            if (--inDegree[v] == 0) {  // v的入度变为0，加入队列
+                zeroInQueue.push(v);
+            }
+            p = p->nextarc;
+        }
+    }
+
+    // 4. 检测是否有环（拓扑序列长度 < 顶点数 → 存在环）
+    if (topoSeq.size() != vexnum) {
+        cout << "\n该有向图存在环，无法进行拓扑排序！" << endl;
+        delete[] inDegree;
+        DestroyALGraph(invAL);  // 销毁临时逆邻接表，避免内存泄漏
+        return false;
+    }
+
+    // 5. 输出拓扑排序结果
+    cout << "\n拓扑排序结果：";
+    for (size_t i = 0; i < topoSeq.size(); i++) {
+        if (i > 0) cout << " -> ";
+        cout << topoSeq[i];
+    }
+    cout << endl;
+
+    // 6. 释放资源
+    delete[] inDegree;
+    DestroyALGraph(invAL);
+    return true;
+}
+
+int main() {
+    // 重定向输入流到文件
+    ifstream fin("input.txt");
+    if (!fin) {
+        cout << "无法打开输入文件 input.txt" << endl;
+        return 1;
+    }
     cin.rdbuf(fin.rdbuf());
 
     //------------------- 测试邻接矩阵（无向图UDG） -------------------
@@ -615,6 +680,9 @@ int main() {
     cout << "转换后的邻接矩阵：\n";
     PrintMGraph(MG_from_AL);
 
+    //------------------- 拓扑排序测试 -------------------
+    cout << "\n===== 拓扑排序测试=====" << endl;
+    TopologicalSort_Kahn(AL);
     //销毁邻接表
     DestroyALGraph(AL);
     DestroyALGraph(AL_from_MG);
